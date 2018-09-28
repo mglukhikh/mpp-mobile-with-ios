@@ -1,0 +1,96 @@
+plugins {
+    id 'kotlin-multiplatform' version '1.3.0-rc-57'
+}
+repositories {
+    google()
+    jcenter()
+    maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+    mavenCentral()
+}
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android-extensions'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "org.jetbrains.kotlin.mpp_app_android"
+        minSdkVersion 15
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+}
+
+kotlin {
+    targets {
+        // For ARM, preset should be changed to presets.android_arm32 or presets.android_arm64
+        fromPreset(presets.android, 'android')
+        // For ARM, preset should be changed to presets.iosArm32 or presets.iosArm64
+        fromPreset(presets.iosX64, 'ios') {
+            compilations.main.outputKinds('FRAMEWORK')
+        }
+    }
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib-common'
+            }
+        }
+        commonTest {
+            dependencies {
+        		implementation 'org.jetbrains.kotlin:kotlin-test-common'
+        		implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+            }
+        }
+        androidMain {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+            }
+        }
+        androidTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test'
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit'
+            }
+        }
+        iosMain {
+        }
+        iosTest {
+        }
+    }
+}
+
+// Please set configuration.build.dir in gradle.properties before running this task.
+// In this directory, you will get a native framework capable to be included into Xсode (с) project.
+// Alternatively, you can directly run this task from Xсode (с).
+// Example of Xcode (c) project can be found here:
+// https://github.com/JetBrains/kotlin-mpp-example/tree/master/iosApp
+task copyFramework {
+    def buildType = project.findProperty("kotlin.build.type") ?: "DEBUG"
+    def target = project.findProperty("kotlin.target") ?: "ios"
+    dependsOn "link${buildType.toLowerCase().capitalize()}Framework${target.capitalize()}"
+
+    doLast {
+        def srcFile = kotlin.targets."$target".compilations.main.getBinary("FRAMEWORK", buildType)
+        def targetDir = getProperty("configuration.build.dir")
+        copy {
+            from srcFile.parent
+            into targetDir
+            include 'app.framework/**'
+            include 'app.framework.dSYM'
+        }
+    }
+}
